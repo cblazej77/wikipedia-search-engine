@@ -11,6 +11,8 @@ import random
 URL_prefix = "https://pl.wikipedia.org/"
 CURRENT_PATH = current_path = Path(__file__).parent
 DATA_PATH = CURRENT_PATH / 'data'
+MAX_DEPTH = 5
+MAX_LINKS = 3
 
 # Crawler ma pobierać:
 # URL strony
@@ -37,42 +39,43 @@ def crawl(URL):
     queue = deque([(URL, 0)])   # (adres, głębokość)
     driver = webdriver.Firefox()
 
-    while queue:
-        url, depth = queue.popleft()
+    try:
+        while queue:
+            url, depth = queue.popleft()
 
-        if url in visited:
-            continue
-        visited.add(url)
-        
-        print(f"Głębokość: {depth}, URL: {url}")
-        print("Długość kolejki:", len(queue))
+            if url in visited:
+                continue
+            visited.add(url)
+            
+            print(f"Głębokość: {depth}, URL: {url}")
+            print("Długość kolejki:", len(queue))
 
-        driver.get(url)
-        driver.implicitly_wait(0.5)
-        html = driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
+            driver.get(url)
+            driver.implicitly_wait(0.5)
+            html = driver.page_source
+            soup = BeautifulSoup(html, "html.parser")
 
-        save_web_content(soup, url, driver.title)
+            save_web_content(soup, url, driver.title)
 
-        download_count = 0
-        if depth < 5:
-            links = soup.select("#mw-content-text a[href^='/wiki/']")
-            random.shuffle(links)
-            for a in links:
-                if download_count >= 3:
-                    break
+            download_count = 0
+            if depth < MAX_DEPTH:
+                links = soup.select("#mw-content-text a[href^='/wiki/']")
+                random.shuffle(links)
+                for a in links:
+                    if download_count >= MAX_LINKS:
+                        break
 
-                queue.append([URL_prefix + (a['href']), depth + 1])
-                download_count += 1
-
-    driver.quit()
+                    queue.append((URL_prefix + a['href'], depth + 1))
+                    download_count += 1
+    finally:
+        driver.quit()
 
 def main():
     URL_sufix = "/wiki/" + input(f"Podaj adres strony ('x' aby zakończyć):\n{URL_prefix}wiki/")
     # URL_sufix = "/wiki/Rehabilitacja"
 
-    if URL_sufix[0] == 'x':
-        sys.exit(0)
+    if URL_sufix[6] == 'x':
+        sys.exit(2)
     
     # Czyszczenie plików z ostatniego szukania
     for filename in os.listdir(DATA_PATH):

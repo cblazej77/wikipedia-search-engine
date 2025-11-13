@@ -10,7 +10,8 @@ import random
 
 URL_prefix = "https://pl.wikipedia.org/"
 CURRENT_PATH = current_path = Path(__file__).parent
-DATA_PATH = CURRENT_PATH / 'data'
+# DATA_PATH = CURRENT_PATH / 'data'
+DATA_PATH = Path(__file__).parent / 'data'
 MAX_DEPTH = 5
 MAX_LINKS = 3
 
@@ -77,6 +78,9 @@ def main():
     if URL_sufix[6] == 'x':
         sys.exit(2)
     
+    
+    DATA_PATH.mkdir(parents=True, exist_ok=True)    
+
     # Czyszczenie plików z ostatniego szukania
     for filename in os.listdir(DATA_PATH):
         file_path = os.path.join(DATA_PATH, filename)

@@ -25,6 +25,7 @@ def main():
             run_script("indexer.py")
             run_script("search_engine.py")
         elif command[0] == 'T':
+            run_script("crawler_test.py")
             run_script("indexer_test.py")
             run_script("search_engine_test.py")
         elif command[0] == 'x':

@@ -9,6 +9,9 @@ import sqlite3
 # Pomijane słowa
 stopwords = ['i', 'oraz', 'w', 'na', 'ze', 'lub', 'the', 'and', 'of']
 
+DATA_PATH = Path(__file__).parent / 'data'
+OUTPUT_JSON = Path(__file__).parent / 'indexed_docs.json'
+
 # Zapisywanie do bazy SQLite
 def save_to_db(processed_docs, db_path='indexed_docs.db'):
     conn = sqlite3.connect(db_path)
@@ -32,21 +35,24 @@ def split_file_content_with_id(kv):
     return {'id': file_id, 'filename': filename, 'content': content}
 
 # Główna metoda indeksująca
-def main():
-    # Określenie ścieżki do plików w /data
-    current_path = Path(__file__).parent
-    data_path = current_path / "data" / "*.txt"
-    output_json = current_path / "indexed_docs.json"
+def main(data_path=DATA_PATH, output_json=OUTPUT_JSON):
+    if data_path.is_dir():
+        file_pattern = str(data_path / "*.txt")
+    else:
+        file_pattern = str(data_path)
 
     with beam.Pipeline() as pipeline:
         docs = (
             pipeline
-            | beam.io.ReadFromTextWithFilename(str(data_path))              # odczyt plików wraz z ich nazwami
+            | beam.io.ReadFromTextWithFilename(str(file_pattern))              # odczyt plików wraz z ich nazwami
             | beam.Map(split_file_content_with_id)                          # przekształcenie w słownik
             | beam.Map(lambda x: json.dumps(x))                             # transfer na JSON do zapisu
             | beam.io.WriteToText(str(output_json), shard_name_template='') # zapis wyniku do pliku "indexed_docs.json"
                            )
     
+    if not output_json.exists():
+        return
+
     # Otwarcie JSON'a i ładowanie danych do listy słowników
     with open(output_json, 'r', encoding='utf-8') as f:
         docs = [json.loads(line) for line in f]

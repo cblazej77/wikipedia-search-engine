@@ -1,4 +1,5 @@
 from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
 import time
 import sys
 from bs4 import BeautifulSoup
@@ -7,13 +8,20 @@ from pathlib import Path
 from collections import deque
 import re
 import random
+from limits import RateLimitItemPerSecond
+from limits.storage import MemoryStorage
+from limits.strategies import FixedWindowRateLimiter
 
 URL_prefix = "https://pl.wikipedia.org/"
 CURRENT_PATH = current_path = Path(__file__).parent
-# DATA_PATH = CURRENT_PATH / 'data'
-DATA_PATH = Path(__file__).parent / 'data'
+
 MAX_DEPTH = 5
 MAX_LINKS = 3
+
+# Rate limiter
+storage = MemoryStorage()
+rate_limit = RateLimitItemPerSecond(10)  # 10 stron na 1 sekundę
+limiter = FixedWindowRateLimiter(storage)
 
 # Crawler ma pobierać:
 # URL strony
@@ -34,11 +42,13 @@ def save_web_content(soup, URL, title):
     with open(os.path.join(DATA_PATH, title + ".txt"), "w", encoding="utf-8") as f:
         f.write(text)
 
-
 def crawl(URL):
     visited = set()
     queue = deque([(URL, 0)])   # (adres, głębokość)
-    driver = webdriver.Firefox()
+
+    options = Options()
+    options.add_argument("--headless")
+    driver = webdriver.Firefox(options=options)
 
     try:
         while queue:
@@ -47,6 +57,10 @@ def crawl(URL):
             if url in visited:
                 continue
             visited.add(url)
+
+            if not limiter.test(rate_limit):
+                time.sleep(2)
+            limiter.hit(rate_limit)
             
             print(f"Głębokość: {depth}, URL: {url}")
             print("Długość kolejki:", len(queue))
@@ -73,7 +87,6 @@ def crawl(URL):
 
 def main():
     URL_sufix = "/wiki/" + input(f"Podaj adres strony ('x' aby zakończyć):\n{URL_prefix}wiki/")
-    # URL_sufix = "/wiki/Rehabilitacja"
 
     if URL_sufix[6] == 'x':
         sys.exit(2)

@@ -14,6 +14,7 @@ from limits.strategies import FixedWindowRateLimiter
 
 URL_prefix = "https://pl.wikipedia.org/"
 CURRENT_PATH = current_path = Path(__file__).parent
+DATA_PATH = Path(__file__).parent / 'data'
 
 MAX_DEPTH = 5
 MAX_LINKS = 3
